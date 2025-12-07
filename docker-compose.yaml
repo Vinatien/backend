@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: vinatien-postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: vinatien_db
+      POSTGRES_USER: root
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    ports:
+      - "5432:5432"
+    networks:
+      - vinatien-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U root -d vinatien_db"]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vinatien-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - /app/.venv
+      - /app/__pycache__
+      - /app/**/__pycache__
+    networks:
+      - vinatien-network
+
+networks:
+  vinatien-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
