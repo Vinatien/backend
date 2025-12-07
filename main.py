@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.handlers.exception_handlers import set_up_exception_handler
 
@@ -17,5 +18,6 @@ async def welcome_root():
     return {"message": "Welcome to the VinaTien Backend Service!!!"}
 
 
+app.include_router(auth_router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(health_router, prefix="/api/health", tags=["Health"])
 # app.include_router(users_router, prefix="/api/users", tags=["Users"])
