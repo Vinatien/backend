@@ -1,7 +1,21 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool, create_engine
+from sqlalchemy import create_engine
+
+### Model Tables (DO NOT DELETE) - we need to import the table models here so that alembic can detect differences
+from models import (
+    account_model,
+    revoked_token_model,
+)
+
+###
+from models.base_model import Base
+from app.utils.settings import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
+
+SYNC_DATABASE_URL = (
+    f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -12,16 +26,10 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Import database settings
-from app.utils.settings import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER
-
-# Construct sync database URL for migrations
-SYNC_DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-
 # add your model's MetaData object here
 # for 'autogenerate' support
-from models import Base
-
+# from myapp import mymodel
+# target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
 
 
@@ -43,8 +51,9 @@ def run_migrations_offline() -> None:
     script output.
 
     """
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=SYNC_DATABASE_URL,
+        url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -62,11 +71,8 @@ def run_migrations_online() -> None:
 
     """
     connectable = create_engine(SYNC_DATABASE_URL)
-
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

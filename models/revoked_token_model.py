@@ -3,8 +3,7 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
-
-Base = declarative_base()
+from models.base_model import Base
 
 
 class RevokedToken(Base):

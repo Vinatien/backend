@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_PASSWORD: root
       POSTGRES_DB: vinatien_db
-      POSTGRES_USER: root
+      POSTGRES_USER: postgres
     volumes:
       - postgres_data:/var/lib/postgresql
     ports:
@@ -14,7 +14,7 @@ services:
     networks:
       - vinatien-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U root -d vinatien_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vinatien_db"]
       start_period: 10s
       interval: 10s
       timeout: 5s

@@ -1,8 +1,7 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
+from models.base_model import Base
 
-Base = declarative_base()
 
 
 class Account(Base):
