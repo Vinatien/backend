@@ -8,3 +8,6 @@ load_dotenv()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 
 ACCOUNT_SECRET_KEY = os.getenv("ACCOUNT_SECRET_KEY")
+
+# DATABASE
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://root:root@postgres:5432/vinatien_db")
