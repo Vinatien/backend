@@ -18,15 +18,16 @@ class RegisterRequest(BaseModel):
 
 
 class TokenPair(BaseModel):
-    """Token pair response DTO."""
+    """Token pair response DTO (internal use)."""
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
 
 
-class RefreshTokenRequest(BaseModel):
-    """Refresh token request DTO."""
-    refresh_token: str
+class AuthResponse(BaseModel):
+    """Authentication response DTO (only access token, refresh token sent as cookie)."""
+    access_token: str
+    token_type: str = "bearer"
 
 
 class MessageResponse(BaseModel):
