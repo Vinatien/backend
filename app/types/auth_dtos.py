@@ -32,3 +32,10 @@ class RefreshTokenRequest(BaseModel):
 class MessageResponse(BaseModel):
     """Generic message response DTO."""
     message: str
+
+
+class GoogleAuthCodeRequest(BaseModel):
+    """Google OAuth authorization code request DTO."""
+    code: str
+    code_verifier: str
+    redirect_uri: str
