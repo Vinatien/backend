@@ -20,7 +20,9 @@ router = APIRouter()
 )
 async def register(
     account_data: AccountCreate,
-    session: AsyncSession = Depends(get_session)
+    response: Response,
+    session: AsyncSession = Depends(get_session), 
+
 ) -> AccountResponse:
     """
     Register a new user account.
@@ -34,8 +36,30 @@ async def register(
 
     Raises:
         409: Username or email already exists
+        
     """
-    return await auth_service.register_account(session, account_data)
+
+    account = auth_service.register_account(session, account_data)
+
+    token_pair = await auth_service.login_account(
+        session,
+        account.email,
+        account.password
+    )
+
+    # Set refresh token as httpOnly cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=token_pair.refresh_token,
+        httponly=True,
+        secure=ENVIRONMENT == "production",
+        samesite="lax",
+        max_age=REFRESH_TOKEN_EXPIRES_IN
+    )
+    return await AuthResponse(
+        access_token=token_pair.access_token,
+        token_type=token_pair.token_type
+    )
 
 
 @router.post(

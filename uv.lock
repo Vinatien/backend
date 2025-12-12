@@ -103,6 +103,7 @@ dependencies = [
     { name = "pyjwt" },
     { name = "python-dotenv" },
     { name = "python-multipart" },
+    { name = "requests" },
     { name = "sqlalchemy" },
     { name = "uvicorn" },
 ]
@@ -125,6 +126,7 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.9.0" },
     { name = "python-dotenv", specifier = ">=1.0.0" },
     { name = "python-multipart", specifier = ">=0.0.20" },
+    { name = "requests", specifier = ">=2.32.5" },
     { name = "sqlalchemy", specifier = ">=2.0.44" },
     { name = "uvicorn", specifier = ">=0.38.0" },
 ]
