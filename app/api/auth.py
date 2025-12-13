@@ -14,7 +14,7 @@ router = APIRouter()
 
 @router.post(
     "/register",
-    response_model=AccountResponse,
+    response_model=AuthResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Register new account"
 )
@@ -23,7 +23,7 @@ async def register(
     response: Response,
     session: AsyncSession = Depends(get_session), 
 
-) -> AccountResponse:
+) -> AuthResponse:
     """
     Register a new user account.
 
@@ -39,12 +39,12 @@ async def register(
         
     """
 
-    account = auth_service.register_account(session, account_data)
+    await auth_service.register_account(session, account_data)
 
     token_pair = await auth_service.login_account(
         session,
-        account.email,
-        account.password
+        account_data.email,
+        account_data.password
     )
 
     # Set refresh token as httpOnly cookie
@@ -56,7 +56,7 @@ async def register(
         samesite="lax",
         max_age=REFRESH_TOKEN_EXPIRES_IN
     )
-    return await AuthResponse(
+    return AuthResponse(
         access_token=token_pair.access_token,
         token_type=token_pair.token_type
     )

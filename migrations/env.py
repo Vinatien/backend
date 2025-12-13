@@ -7,6 +7,8 @@ from sqlalchemy import create_engine
 from models import (
     account_model,
     revoked_token_model,
+    bank_account_model,
+    transaction_model
 )
 
 ###

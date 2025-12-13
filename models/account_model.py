@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from models.base_model import Base
 
@@ -15,3 +16,6 @@ class Account(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationship to BankAccounts
+    bank_accounts = relationship("BankAccount", back_populates="account", cascade="all, delete-orphan")

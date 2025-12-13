@@ -29,6 +29,7 @@ class AccountUpdate(BaseModel):
 class AccountResponse(AccountBase):
     """Account response DTO."""
     id: int
+    email: str
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None

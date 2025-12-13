@@ -1,0 +1,88 @@
+"""Bank Account service for business logic."""
+
+import requests
+from datetime import datetime, timedelta
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.repositories import bank_account_repository
+from app.bank.vpbank import VPBank
+from app.types.bank_account_dtos import (
+    BankAccountResponse,
+    BankProviderEnum
+)
+from app.types.exceptions import (
+    BusinessRuleException,
+    ConflictException
+)
+
+
+async def link_bank_account(
+    session: AsyncSession,
+    account_id: int,
+    bank_provider: BankProviderEnum
+) -> BankAccountResponse:
+    """
+    Create consent and link bank account.
+
+    Args:
+        session: Database session
+        account_id: User account ID
+        bank_provider: Bank provider enum
+
+    Returns:
+        Created bank account
+
+    Raises:
+        ConflictException: If consent creation fails
+        BusinessRuleException: If IBAN cannot be retrieved
+    """
+    # Initialize bank client (currently only VPBank)
+    if bank_provider != BankProviderEnum.VPBANK:
+        raise BusinessRuleException("Only VPBank is currently supported")
+
+    # Create requests session with required headers
+    bank_session = requests.Session()
+    bank_session.headers.update({
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "TPP-Redirect-URI": "https://www.google.ch",
+        "PSU-IP-Address": "192.0.0.12"
+    })
+
+    bank_client = VPBank(bank_session)
+
+    try:
+        # Create consent and get IBAN
+        iban = bank_client.create_consent_and_get_iban()
+
+        # Extract consent ID from session headers
+        consent_id = bank_session.headers.get("Consent-ID")
+        if not consent_id:
+            raise BusinessRuleException("Failed to retrieve consent ID from bank")
+
+        # Set consent validity (90 days as per VPBank implementation)
+        consent_valid_until = datetime.now() + timedelta(days=90)
+
+        # Check if consent already exists
+        existing = await bank_account_repository.get_bank_account_by_consent_id(
+            session, consent_id
+        )
+        if existing:
+            raise ConflictException("This bank account is already linked")
+
+        # Create bank account record
+        bank_account = await bank_account_repository.create_bank_account(
+            session=session,
+            account_id=account_id,
+            bank_provider="vpbank",
+            consent_id=consent_id,
+            iban=iban,
+            consent_valid_until=consent_valid_until
+        )
+
+        return BankAccountResponse.model_validate(bank_account)
+
+    except requests.exceptions.HTTPError as e:
+        raise BusinessRuleException(f"Bank API error: {str(e)}")
+    except Exception as e:
+        raise BusinessRuleException(f"Failed to link bank account: {str(e)}")

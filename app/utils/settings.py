@@ -41,3 +41,7 @@ GOOGLE_REDIRECT_URI = (
     if GOOGLE_REDIRECT_URIS and GOOGLE_REDIRECT_URIS[0]
     else os.environ.get("GOOGLE_REDIRECT_URI", "")
 )
+
+# ENCRYPTION SETTINGS
+# Generate using: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
