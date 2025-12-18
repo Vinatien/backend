@@ -9,7 +9,8 @@ from app.services.authorization_service import authorize_authenticated_account
 from app.types.account_dtos import AccountRead
 from app.types.bank_account_dtos import (
     LinkBankAccountRequest,
-    BankAccountResponse
+    BankAccountResponse,
+    BalanceResponse
 )
 from app.types.transaction_dtos import (
     TransactionListResponse,
@@ -40,6 +41,38 @@ async def get_user_bank_account(
     """
     return await bank_account_service.get_user_bank_account(
         session=session,
+        account_id=account.account_id
+    )
+
+
+@router.get(
+    "/{bank_account_id}/balance",
+    response_model=BalanceResponse,
+    summary="Get bank account balance"
+)
+async def get_balance(
+    bank_account_id: int,
+    session: AsyncSession = Depends(get_session),
+    account: AccountRead = Depends(authorize_authenticated_account())
+) -> BalanceResponse:
+    """
+    Get the current balance for a bank account.
+
+    Args:
+        bank_account_id: Bank account ID
+        session: Database session
+        account: Authenticated user account
+
+    Returns:
+        Current balance with amount and currency
+
+    Raises:
+        404: If bank account not found
+        400: If consent expired or balance fetch fails
+    """
+    return await bank_account_service.get_balance(
+        session=session,
+        bank_account_id=bank_account_id,
         account_id=account.account_id
     )
 

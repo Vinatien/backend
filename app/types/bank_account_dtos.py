@@ -43,3 +43,9 @@ class BankAccountListResponse(BaseModel):
     """Response containing list of bank accounts."""
     bank_accounts: list[BankAccountResponse]
     total: int
+
+
+class BalanceResponse(BaseModel):
+    """Response containing account balance."""
+    amount: str
+    currency: str

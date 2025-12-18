@@ -9,11 +9,13 @@ from app.repositories import bank_account_repository
 from app.bank.vpbank import VPBank
 from app.types.bank_account_dtos import (
     BankAccountResponse,
-    BankProviderEnum
+    BankProviderEnum,
+    BalanceResponse
 )
 from app.types.exceptions import (
     BusinessRuleException,
-    ConflictException
+    ConflictException,
+    NotFoundException
 )
 
 
@@ -39,6 +41,70 @@ async def get_user_bank_account(
         return None
 
     return BankAccountResponse.model_validate(bank_account)
+
+
+async def get_balance(
+    session: AsyncSession,
+    bank_account_id: int,
+    account_id: int
+) -> BalanceResponse:
+    """
+    Get the current balance for a bank account.
+
+    Args:
+        session: Database session
+        bank_account_id: Bank account ID
+        account_id: User account ID (for ownership validation)
+
+    Returns:
+        Current balance with amount and currency
+
+    Raises:
+        NotFoundException: If bank account not found
+        BusinessRuleException: If consent expired or balance fetch fails
+    """
+    # Get and validate bank account ownership
+    bank_account = await bank_account_repository.get_bank_account_by_id(
+        session, bank_account_id, account_id
+    )
+    if not bank_account:
+        raise NotFoundException("Bank account not found")
+
+    # Validate consent is still valid
+    if bank_account.consent_status != "valid":
+        raise BusinessRuleException(f"Consent is {bank_account.consent_status}")
+
+    # Initialize bank client
+    bank_session = requests.Session()
+    bank_session.headers.update({
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "TPP-Redirect-URI": "https://www.google.ch",
+        "PSU-IP-Address": "192.0.0.12",
+        "Consent-ID": bank_account.consent_id
+    })
+
+    bank_client = VPBank(bank_session)
+
+    try:
+        # Fetch balance from bank
+        success, balance_data = bank_client.get_balance(
+            bank_account.iban,
+            f"Balance check for bank_account_id {bank_account_id}"
+        )
+
+        if not success or not balance_data:
+            raise BusinessRuleException("Failed to fetch balance from bank")
+
+        return BalanceResponse(
+            amount=balance_data.get("amount", "0"),
+            currency=balance_data.get("currency", "EUR")
+        )
+
+    except requests.exceptions.HTTPError as e:
+        raise BusinessRuleException(f"Bank API error: {str(e)}")
+    except Exception as e:
+        raise BusinessRuleException(f"Failed to get balance: {str(e)}")
 
 
 async def link_bank_account(
@@ -91,6 +157,19 @@ async def link_bank_account(
         consent_id = bank_session.headers.get("Consent-ID")
         if not consent_id:
             raise BusinessRuleException("Failed to retrieve consent ID from bank")
+
+        # Validate IBAN by attempting to fetch balance
+        print(f"Validating IBAN {iban} by fetching balance...")
+        success, balance_data = bank_client.get_balance(
+            iban,
+            f"IBAN validation for account_id {account_id}"
+        )
+
+        if not success:
+            raise BusinessRuleException(
+                f"IBAN {iban} is not accessible or invalid. "
+                "The bank API returned an error when trying to access this account."
+            )
 
         # Set consent validity (90 days as per VPBank implementation)
         consent_valid_until = datetime.now() + timedelta(days=90)
