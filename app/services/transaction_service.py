@@ -180,10 +180,23 @@ async def sync_transactions_from_bank(
             # Extract account info (Required for unique key)
             creditor_iban = tx.get("creditorAccount", {}).get("iban")
             debtor_iban = tx.get("debtorAccount", {}).get("iban")
-            
+
             creditor_last4 = _extract_last4(creditor_iban)
             debtor_last4 = _extract_last4(debtor_iban)
-        
+
+            # --- 2. Check if transaction already exists ---
+            exists = await transaction_repository.transaction_exists_by_details(
+                session=session,
+                bank_account_id=bank_account_id,
+                booking_date=booking_date,
+                amount=amount_value,
+                creditor_account_last4=creditor_last4,
+                debtor_account_last4=debtor_last4
+            )
+
+            # Skip if transaction already exists
+            if exists:
+                continue
 
             # --- 3. Extract Remaining Fields for Insertion ---
 
@@ -194,27 +207,27 @@ async def sync_transactions_from_bank(
             # Extract names directly (since encryption fields were removed)
             creditor_name = tx.get("creditorName")
             debtor_name = tx.get("debtorName")
-            
+
             # NOTE: remittanceInformationUnstructured is NOT in your model, so we skip extraction
 
             # 4. Create Transaction Object
             transaction = Transaction(
                 bank_account_id=bank_account_id,
-                
+
                 # --- Unique Key Fields ---
                 booking_date=booking_date,
                 amount=amount_value,
                 creditor_account_last4=creditor_last4,
                 debtor_account_last4=debtor_last4,
-                
+
                 # --- Other Fields ---
                 value_date=value_date,
                 currency=tx.get("transactionAmount", {}).get("currency", "EUR"),
-                
+
                 # We are removing transaction_type because it wasn't in the model and wasn't in the input data.
                 # If you need it, you must add a column to the model and infer the value here (e.g., based on amount sign).
-                # transaction_type=tx.get("creditDebitIndicator"), 
-                
+                # transaction_type=tx.get("creditDebitIndicator"),
+
                 booking_status="booked" if tx in booked else "pending",
 
                 # Direct names (Encryption fields removed from model)

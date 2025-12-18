@@ -60,6 +60,17 @@ async def get_bank_account_by_consent_id(
     return result.scalar_one_or_none()
 
 
+async def get_bank_account_by_account_id(
+    session: AsyncSession,
+    account_id: int
+) -> Optional[BankAccount]:
+    """Get bank account by account ID."""
+    result = await session.execute(
+        select(BankAccount).where(BankAccount.account_id == account_id)
+    )
+    return result.scalar_one_or_none()
+
+
 async def update_bank_account_sync_time(
     session: AsyncSession,
     bank_account_id: int,

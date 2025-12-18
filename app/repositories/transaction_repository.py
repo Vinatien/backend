@@ -55,6 +55,29 @@ async def transaction_exists(
     return result.scalar_one_or_none() is not None
 
 
+async def transaction_exists_by_details(
+    session: AsyncSession,
+    bank_account_id: int,
+    booking_date: datetime,
+    amount: Decimal,
+    creditor_account_last4: str | None,
+    debtor_account_last4: str | None
+) -> bool:
+    """Check if transaction exists based on composite unique key."""
+    result = await session.execute(
+        select(Transaction).where(
+            and_(
+                Transaction.bank_account_id == bank_account_id,
+                Transaction.booking_date == booking_date,
+                Transaction.amount == amount,
+                Transaction.creditor_account_last4 == creditor_account_last4,
+                Transaction.debtor_account_last4 == debtor_account_last4
+            )
+        )
+    )
+    return result.scalar_one_or_none() is not None
+
+
 async def bulk_create_transactions(
     session: AsyncSession,
     transactions: List[Transaction]

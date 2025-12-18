@@ -2,6 +2,7 @@
 
 import requests
 from datetime import datetime, timedelta
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import bank_account_repository
@@ -14,6 +15,30 @@ from app.types.exceptions import (
     BusinessRuleException,
     ConflictException
 )
+
+
+async def get_user_bank_account(
+    session: AsyncSession,
+    account_id: int
+) -> Optional[BankAccountResponse]:
+    """
+    Get the bank account associated with a user.
+
+    Args:
+        session: Database session
+        account_id: User account ID
+
+    Returns:
+        Bank account details if exists, None otherwise
+    """
+    bank_account = await bank_account_repository.get_bank_account_by_account_id(
+        session, account_id
+    )
+
+    if not bank_account:
+        return None
+
+    return BankAccountResponse.model_validate(bank_account)
 
 
 async def link_bank_account(
@@ -33,9 +58,16 @@ async def link_bank_account(
         Created bank account
 
     Raises:
-        ConflictException: If consent creation fails
+        ConflictException: If user already has a bank account or consent creation fails
         BusinessRuleException: If IBAN cannot be retrieved
     """
+    # Check if user already has a bank account
+    existing_account = await bank_account_repository.get_bank_account_by_account_id(
+        session, account_id
+    )
+    if existing_account:
+        raise ConflictException("User already has a bank account linked")
+
     # Initialize bank client (currently only VPBank)
     if bank_provider != BankProviderEnum.VPBANK:
         raise BusinessRuleException("Only VPBank is currently supported")

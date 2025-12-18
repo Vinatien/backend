@@ -19,6 +19,31 @@ from app.types.transaction_dtos import (
 router = APIRouter()
 
 
+@router.get(
+    "/",
+    response_model=BankAccountResponse | None,
+    summary="Get user's bank account"
+)
+async def get_user_bank_account(
+    session: AsyncSession = Depends(get_session),
+    account: AccountRead = Depends(authorize_authenticated_account())
+) -> BankAccountResponse | None:
+    """
+    Get the bank account associated with the authenticated user.
+
+    Args:
+        session: Database session
+        account: Authenticated user account
+
+    Returns:
+        Bank account details if exists, None otherwise
+    """
+    return await bank_account_service.get_user_bank_account(
+        session=session,
+        account_id=account.account_id
+    )
+
+
 @router.post(
     "/link",
     response_model=BankAccountResponse,
